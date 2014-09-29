@@ -3,8 +3,8 @@
 * [3.2 [ステップ8] リストを使う](#3.2)
 * [3.3 [ステップ9] タプルを使う](#3.3)
 * [3.4 [ステップ10] 集合とマップを使う](#3.4)
-* [3.5 ](#3.5)
-* [3.6 ](#3.6)
+* [3.5 [ステップ11] 関数型のスタイルを見分ける](#3.5)
+* [3.6 [ステップ12] ファイルから行を読み出す](#3.6)
 * [まとめ](#matome)
 
 ---
@@ -162,6 +162,80 @@ muMap += (3 -> "zzz")
 println(muMap(2))
 ```
 
+
+<a name="3.5"></a>
+## 3.5 [ステップ11] 関数型のスタイルを見分ける
+* 命令形のスタイル： コードにvarが含まれている
+* 関数型のスタイル： コードにvalだけが使われている
+
+命令形のスタイル これはダメな例
+```scala
+def printArgs(args: Array[String]): Unit = {
+  var i = 0
+  while (i < args.length) {
+    println(args(i))
+    i += 1
+  }
+}
+```
+ダメな点は２つ  
+
+* varを使用している  
+* 標準出力ストリームへの出力という副作用がある  
+（結果型がUnitになっていれば副作用がある）  
+
+上記の例は、以下のような関数型にできる
+```scala
+def formatArgs(args: Array[String]) = args.mkString("\n")
+```
+
+```scala
+// この関数は出力はしないが、結果をprintlnに渡せば簡単に出力まで実行できる
+println(formatArgs(args))
+
+// テストもしやすい
+val res = formatArgs(Array("zero", "one", "two"))
+assert(res == "zero\none\ntwo")
+```
+
+まずは、val -> イミュータブルオブジェクト -> 副作用のないメソッド を優先して作る
+
+
+<a name="3.6"></a>
+## 3.6 [ステップ12] ファイルから行を読み出す
+
+ファイルを読み込み、横に文字数とパイプ（右揃え）を出力するコード
+```scala
+import scala.io.Source
+
+// 引数の文字列の長さが何桁で表示できるかを計算する関数
+def widthOfLength(s: String) = s.length.toString.length
+
+if (args.length > 0) {
+  // 読み込んだファイルの全行を保持（リスト）
+  val lines = Source.fromFile(args(0)).getLines().toList
+
+  // reduceLeftメソッド：
+  // listから第一要素、第二要素、・・・と、先頭から2つずつ取り出し、渡された関数の処理を実行する
+  // 最後は関数適用の結果を返すので、この場合はlinesに含まれている最長の文字列を返す
+  val longestLine = lines.reduceLeft(
+    (a, b) => if (a.length > b.length) a else b
+  )
+
+  // 一番長い文字列の桁数
+  val maxWidth = widthOfLength(longestLine)
+
+// 出力
+  for (line <- lines) {
+  	val numSpaces = maxWidth - widthOfLength(line)
+  	val padding = " " * numSpaces
+  	println(padding + line.length + " | " + line)
+  }
+}
+else
+  // ファイル名の入力がない場合はエラー
+  Console.err.println("Please enter filename")
+```
 
 
 
