@@ -256,10 +256,11 @@ private宣言を使って、約分処理を追加する
 ```scala
 class Rational(n: Int, d: Int) {
   require(d != 0)
+  // 最大公約数を求める
   private val g = gcd(n.abs, d.abs)
+  // 最大公約数で割った値を分子・分母とする
   val numer = n / g
   val denom = d / g
-  // 補助コンストラクタ追加
   def this(n: Int) = this(n, 1)
   def add(that: Rational): Rational =
     new Rational(
@@ -289,3 +290,4 @@ class Rational(n: Int, d: Int) {
 <a name="matome"></a>
 ## まとめ
 * なかなか理解が遅くなってきた・・・書いてあることを理解はできるけど、自分で思いつくのはむずかしいなぁ
+* ユーリクッドの互助算って・・・ムムム・・・；
