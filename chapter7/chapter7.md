@@ -45,13 +45,29 @@ greet: ()Unit
 // greetの結果値とUnit値の()を比較している
 scala> greet() == ()
 // あれ、なんか警告がでる・・・
-<console>:12: warning: comparing values of types Unit and Unit using ’==’ will always yield true
+<console>:12: warning: comparing values of types Unit and Unit using '==' will always yield true
               greet() == ()
                       ^
 warning: there was one deprecation warning; re-run with -deprecation for details
 hi
 res8: Boolean = true
 ```
+
+```scala
+var line = ""
+while ((line = readLine()) != "") // このような書き方をするとエラーになる
+  println("Read: " + line)
+
+// Unit型の値とString型の値を「!=」で比較すると、必ずtrueになるがいいのか？という警告
+<console>:9: warning: comparing values of types Unit and String using '!=' will always yield true
+              while ((line = readLine()) != "")
+                                         ^
+warning: there was one deprecation warning; re-run with -deprecation for details
+```
+* Javaでは、代入の結果値は代入された値で、この場合だと標準入力からの行になる
+* Scalaでは、代入の結果値は常にUnit値「()」になり、「""」にはならないため、永久ループになってしまう
+* 一般的に、varをさけるのと同じようにwhileもさけた方がよい
+* whileループは値を生み出さないので、プログラムに何らかの違いを生むためには通常、varを更新するか入出力処理を実行する必要がある
 
 
 
