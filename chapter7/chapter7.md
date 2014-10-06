@@ -73,6 +73,8 @@ warning: there was one deprecation warning; re-run with -deprecation for details
 
 <a name="7.3"></a>
 ## 7.3 for式
+* スイスアーミーナイフ？
+
 
 
 
