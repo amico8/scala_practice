@@ -73,7 +73,73 @@ warning: there was one deprecation warning; re-run with -deprecation for details
 
 <a name="7.3"></a>
 ## 7.3 for式
-* スイスアーミーナイフ？
+* Scalaのfor式は、反復処理のスイスアーミーナイフである＝単純な反復処理だけでなく、色々なことができる
+
+### コレクションの反復処理
+```scala
+// カレントディレクトリのすべてのファイルをリストアップする
+val filesHere = (new java.io.File(".")).listFiles
+for (file <- filesHere)
+  println(file)
+```
+```scala
+// ジェネレータ（filesHereの型がArray[File]）
+file <- filesHere
+```
+for式の「<-」記号の右辺は、適切なシグネチャを持つ決められたメソッド（この場合はforeach）を定義している任意の型の式で良い
+
+```scala
+// こう書くのはめんどくさい
+for (i <- List(1,2,3,4))
+  println("Iteration " + i)
+
+// Range（レンジ）型
+for (i <- 1 to 4)
+  println("Iteration " + i)
+
+Iteration 1
+Iteration 2
+Iteration 3
+Iteration 4
+
+// Until型（上限値を外す）
+for (i <- 1 until 4)
+  println("Iteration " + i)
+
+Iteration 1
+Iteration 2
+Iteration 3
+
+// この書き方だと、添字の参照がずれてしまう可能性があるので、ジェネレータを推奨
+for(i <- 0 to filesHere.length - 1)
+  println(filesHere(i)) 
+
+```
+
+### フィルタリング
+* コレクションのすべての要素を反復処理するのではなく、フィルタをかけて処理対象の要素を抜き出しサブセットしてから処理することもできる
+```scala
+val filesHere = (new java.io.File(".")).listFiles
+for (file <- filesHere if file.getName.endsWith(".scala"))
+  println(file)
+
+// 以下と同義
+for (file <- filesHere)
+  if (file.getName.endsWith(".scala"))
+    println(file)
+```
+しかし、for式が意味のある値を結果値として返す「式」という定義に基づくと、前者のほうが好ましい  
+(結果値・・・for式の<-節で型が決まるコレクション)
+
+```scala
+// ifなどのフィルタは増やすこともできる
+// ディレクトリを除き、ファイルだけを出力する
+for (file <- filesHere
+  if file.isFile
+  if file.getName.endsWith(".scala")
+  ) println(file)
+```
+
 
 
 
