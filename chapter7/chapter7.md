@@ -15,13 +15,16 @@ if (!args.isEmpty)
   say = args(0)
 ```
 
-関数型に書き換えてみる
+関数型に書き換えてみると、こんな感じ↓
 ```scala
-var say = if (!args.isEmpty) args(0) else "hogehoge"
+val say = if (!args.isEmpty) args(0) else "hogehoge"
 ```
+ifの結果値は選択された値になり、変数sayはその値で初期化される！
+
 * valを使用しているので、変数が書き換えられてないかをチェックする手間が省ける
-* 等式推論をサポートしやすくなる
-* 式に副作用がなければ、valによって導入される変数は、それを計算する式と等しい
+* 等式推論をサポートしやすくなる  
+式に副作用がなければ、valによって導入される変数は、それを計算する式と等しい  
+つまり、変数名の代わりに計算式を書くことができる！
 
 ```scala
 var say = if (!args.isEmpty) args(0) else "hogehoge"
@@ -73,9 +76,10 @@ warning: there was one deprecation warning; re-run with -deprecation for details
 
 <a name="7.3"></a>
 ## 7.3 for式
-* Scalaのfor式は、反復処理のスイスアーミーナイフである＝単純な反復処理だけでなく、色々なことができる
+* Scalaのfor式は、反復処理のスイスアーミーナイフである＝単純な反復処理だけでなく、色々なことができるらしい。
 
 ### コレクションの反復処理
+forが実行できる最も簡単な処理は、反復によってコレクションのすべての要素を処理すること。
 ```scala
 // カレントディレクトリのすべてのファイルをリストアップする
 val filesHere = (new java.io.File(".")).listFiles
@@ -83,9 +87,12 @@ for (file <- filesHere)
   println(file)
 ```
 ```scala
-// ジェネレータ（filesHereの型がArray[File]）
+// この構文をジェネレータと呼ぶ
+// 反復処理をするたびに、fileという名前の新しいvalが要素の値によって初期化される
+// filesHereの型がArray[File]なので、コンパイラはfileをFile型と推論する
 file <- filesHere
 ```
+for式は、配列だけでなく他のコレクションも処理できる！  
 for式の「<-」記号の右辺は、適切なシグネチャを持つ決められたメソッド（この場合はforeach）を定義している任意の型の式で良い
 
 ```scala
@@ -110,35 +117,65 @@ Iteration 1
 Iteration 2
 Iteration 3
 
-// この書き方だと、添字の参照がずれてしまう可能性があるので、ジェネレータを推奨
+// この書き方だと、添字の参照がずれてしまう可能性があるので、ジェネレータを使う方が安全
 for(i <- 0 to filesHere.length - 1)
   println(filesHere(i)) 
-
 ```
 
 ### フィルタリング
 * コレクションのすべての要素を反復処理するのではなく、フィルタをかけて処理対象の要素を抜き出しサブセットしてから処理することもできる
 ```scala
 val filesHere = (new java.io.File(".")).listFiles
-for (file <- filesHere if file.getName.endsWith(".scala"))
+for (file <- filesHere if file.getName.endsWith(".txt"))
   println(file)
+```
 
-// 以下と同義
+```scala
+// ↑と同義の命令型。
+// しかし、for式が意味のある値を結果値として返す「式」という定義に基づくと、↑の方が好ましい  
+// (結果値は、for式の<-節で型が決まるコレクション)
+val filesHere = (new java.io.File(".")).listFiles
 for (file <- filesHere)
-  if (file.getName.endsWith(".scala"))
+  if (file.getName.endsWith(".txt"))
     println(file)
 ```
-しかし、for式が意味のある値を結果値として返す「式」という定義に基づくと、前者のほうが好ましい  
-(結果値・・・for式の<-節で型が決まるコレクション)
 
 ```scala
 // ifなどのフィルタは増やすこともできる
-// ディレクトリを除き、ファイルだけを出力する
+// ディレクトリを除き、ファイルだけを出力する処理
+val filesHere = (new java.io.File(".")).listFiles
 for (file <- filesHere
   if file.isFile
-  if file.getName.endsWith(".scala")
+  if file.getName.endsWith(".txt")
   ) println(file)
 ```
+
+### 入れ子の反復処理
+* 複数の「<-」を追加して、ループを入れ子にすることもできる
+```scala
+// カレントディレクトリのすべてのファイルをリストアップする
+val filesHere = (new java.io.File(".")).listFiles
+
+// ファイルに書いてある全行をListとして格納するメソッド
+def fileLines(file: java.io.File) =
+  scala.io.Source.fromFile(file).getLines().toList
+
+// grep処理
+def grep(pattern: String) =
+  for (
+    file <- filesHere
+      if file.getName.endsWith(".txt"); // 拡張子が「.txt」のファイルのみ処理　「;」をつける！！！
+      line <- fileLines(file)
+        if line.trim.matches(pattern) // 「.txt」ファイル内で、該当パターンに当てはまる行を出力
+  ) println(file + ": " + line.trim)
+
+grep(".*gcd.*")
+```
+forの()は、{}にしてもよい。そうすると、「;」を省略することができる。
+
+
+### 変数への中間結果の束縛
+
 
 
 
@@ -148,3 +185,5 @@ for (file <- filesHere
 
 <a name="matome"></a>
 ## まとめ
+* ジェネレータとイテレータってうまく説明できない・・・foreachとも違うのか・・・
+
