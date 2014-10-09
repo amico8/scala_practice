@@ -2,6 +2,11 @@
 * [7.1 if式](#7.1)
 * [7.2 whileループ](#7.2)
 * [7.3 for式](#7.3)
+* [7.4 try式による例外処理](#7.4)
+* [7.5 match式](#7.5)
+* [7.6 breakとcontinueを使わずに済ませる](#7.6)
+* [7.7 変数のスコープ](#7.7)
+* [7.8 命令型スタイルのコードのリファクタリング](#7.8)
 * [まとめ](#matome)
 
 ---
@@ -175,10 +180,187 @@ forの()は、{}にしてもよい。そうすると、「;」を省略するこ
 
 
 ### 変数への中間結果の束縛
+* for式の反復処理の中で、繰り返し使用される式は変数としてまとめることができるぽい（**束縛変数**）  
+(今回の例では「line.trim」が1回の反復処理に対し2回出てきている)
+* 束縛変数は、そのスコープがfor式の中にとどまるのでvalキーワードを省略できる
+```scala
+def grep(pattern: String) =
+  for {
+    file <- filesHere
+      if file.getName.endsWith(".txt")
+      line <- fileLines(file)
+        trimmed = line.trim // valを省略した束縛変数
+        if trimmed.matches(pattern)
+  } println(file + ": " + trimmed)
+```
 
 
+### 新しいコレクションの作成
+* for式の今までの例だと、反復的に生成された値は操作後破棄されるが、記憶しておくこともできる
+* **yield**キーワードを使う
+```scala
+val filesHere = (new java.io.File(".")).listFiles
+
+def scalaFiles =
+  for {
+    file <- filesHere
+      if file.getName.endsWith(".scala")
+  } yield file
+
+// 出力結果
+scala> scalaFiles
+res0: Array[java.io.File] = Array(./hoge.scala)
+```
+for yield式の構文は以下のとおり
+```
+for ＜節＞ yield ＜本体＞
+```
+節には反復処理のジェネレータやフィルタ、本体には反復処理で実行される処理を書く
+```scala
+// こんな風にも書ける
+def scalaFiles = for(file <- filesHere if file.getName.endsWith(".scala")) yield file
+
+// これはNG
+def scalaFiles = for(file <- filesHere if file.getName.endsWith(".scala")){ yield file }
+```
+書いたソースをまとめてみる（for式の結果値が今までの例と異なる）
+```scala
+val filesHere = (new java.io.File(".")).listFiles
+
+def fileLines(file: java.io.File) =
+  scala.io.Source.fromFile(file).getLines().toList
+
+val forLineLengths =
+  for {
+    file <- filesHere  // カレントディレクトリから全ファイル取得（Array[File]型）
+    if file.getName.endsWith(".scala")
+    line <- fileLines(file)  // 「.scala」のファイルの全行を取得（Iterator[String]型）
+    trimmed = line.trim  // 行の両端の空白を削除
+    if trimmed.matches(".*for.*")  // 文字列「for」を持つIterator[String]型に変換
+  } yield trimmed.length  // Int型で返されるので、for式の結果値はArray[Int]型になる
+```
 
 
+<a name="7.4"></a>
+## 7.4 try式による例外処理
+* Scalaのthrowは、結果型を持つ式になっている  
+例えば↓の例だと、nが偶数でなければhalfが初期化される前に例外が投げられる。throwはNothing型を返す（何も計算しない型）
+```scala
+val half = if (n % 2 == 0) n / 2 else throw new RuntimeException("n must be even")
+```
+try〜catch〜finallyの書き方はこんな感じ↓
+```scala
+import java.io.FileReader
+import java.io.FileNotFoundException
+import java.io.IOException
+
+var file = new FileReader("input.txt")
+try {
+  // ファイルを使った処理
+} catch {
+  case ex: FileNotFoundException => println("FileNotFoundException")
+  case ex: IOException => println("IOException")
+} finally {
+  // ファイルをクローズする
+  file.close()
+}
+```
+* Javaと違い、Scalaは例外のキャッチやthrow節宣言が必須になっていない
+* @throwアノテーションをつければ、throw節を宣言できる
+* finally節はファイルのクローズなどのクリーンアップ処理などを実行するもので、本体やcatch節で計算された値を変更してはいけない
+
+
+<a name="7.5"></a>
+## 7.5 match式
+* Scalaのmatch式を使えば、switch文と同じように複数の選択肢から1つを選ぶという処理ができる
+* breakがいらない
+* Javaのcase文と異なり、整数型やenum定数だけでなくあらゆる型を扱うことができる
+* Javaのdefaultが「_」で記述される
+* match式が結果値を生成する
+
+副作用のあるmatch式
+```Scala
+val firstArg = if (args.length > 0) args(0) else ""
+
+firstArg match {
+  case "salt" => println("pepper")
+  case "chips" => println("salsa")
+  case "eggs" => println("bacon")
+  case _ => println("huh?")
+}
+```
+
+結果値を生成するmatch式（処理を分けられる）
+```Scala
+val firstArg = if (args.length > 0) args(0) else ""
+// 食品を選択する処理
+var friend =
+  firstArg match {
+    case "salt" => "pepper"
+    case "chips" => "salsa"
+    case "eggs" => "bacon"
+    case _ => "huh?"
+  }
+// 選択されたものを表示する処理
+println(friend)
+```
+
+
+<a name="7.6"></a>
+## 7.6 breakとcontinueを使わずに済ませる
+* breakやcontinueは、Scalaの関数リテラルと相性が悪いためあまり推奨されない
+* continue→if、break→Booleanに置き換える
+
+先頭が「-」ではなく、かつ拡張子が「.scala」のものを探す処理
+```java
+// Javaの場合
+int i = 0;
+boolean foundIt = false;
+while (i < args.length) {
+  if (args[i].startsWith("-")) {
+    i++;
+    continue;
+  }
+  if (args[i].endsWith(".scala")) {
+    foundIt = true;
+    break;
+  }
+  i++;
+}
+```
+```scala
+// Scalaの場合
+var i = 0
+var foundIt = false
+while (i < args.length && !foundIt) {
+  if (!args(i).startsWith("-")) { // contonueがifに
+    if (args(i).endsWith(".scala"))
+      foundIt = true // breakが書き換えに
+  }
+  i = i + 1
+}
+```
+でもvarを使用していてSclaっぽくないので、ループを再帰関数に書き直します
+```scala
+// 入力に整数を取り、条件に合致した添字を返す関数
+def searchFrom(i: Int): Int =
+  if (i >= args.length) - 1
+  else if (args(i).startsWith("-")) searchFrom(i + 1)
+  else if (args(i).endsWith(".scala")) i
+  else searchFrom(i + 1)
+
+val i = searchFrom(0)
+```
+
+
+<a name="7.7"></a>
+## 7.7 変数のスコープ
+特になし
+
+
+<a name="7.8"></a>
+### 7.8 命令型スタイルのコードのリファクタリング
+* 掛け算プログラムを関数型スタイルで書いてみる
 
 
 
@@ -186,4 +368,4 @@ forの()は、{}にしてもよい。そうすると、「;」を省略するこ
 <a name="matome"></a>
 ## まとめ
 * ジェネレータとイテレータってうまく説明できない・・・foreachとも違うのか・・・
-
+* ジェネレータ節はfor式の{}内？？
