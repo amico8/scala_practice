@@ -361,8 +361,36 @@ val i = searchFrom(0)
 <a name="7.8"></a>
 ### 7.8 命令型スタイルのコードのリファクタリング
 * 掛け算プログラムを関数型スタイルで書いてみる
+    * printやprintlnの副作用をなくす
+    * whileやvarの使用をなくす
 
+```scala
+// 1段分を返す
+def makeRowSeq(row: Int) =
+  for (col <- 1 to 10) yield {
+    val prod = (row * col).toString
+    val padding = " " * (4 - prod.length)
+    padding + prod
+  }
 
+// 1段分を文字列として返す
+def makeRow(row: Int) = makeRowSeq(row).mkString
+
+// 1行に1段分の文字列を収めた表を返す
+def multiTable() = {
+  val tableSeq =
+    for (row <- 1 to 10)
+    yield makeRow(row)
+  tableSeq.mkString("\n")
+}
+
+// 出力
+scala> println(multiTable())
+```
+
+* makeRowSeqやmakeRowは、ヘルパー関数と呼ぶ
+* mkStringは、シーケンス内の文字列を連結して1つの文字列にして返す
+* 文字列 * 整数の演算では文字列繰り返しになる
 
 
 <a name="matome"></a>
